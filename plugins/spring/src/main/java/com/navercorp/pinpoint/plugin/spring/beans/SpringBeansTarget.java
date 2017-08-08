@@ -17,6 +17,7 @@ package com.navercorp.pinpoint.plugin.spring.beans;
 import com.navercorp.pinpoint.bootstrap.util.AntPathMatcher;
 import com.navercorp.pinpoint.bootstrap.util.PathMatcher;
 import com.navercorp.pinpoint.bootstrap.util.RegexPathMatcher;
+import com.navercorp.pinpoint.common.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,19 +38,19 @@ public class SpringBeansTarget {
     private List<String> annotations;
 
     public boolean isValid() {
-        if (basePackages != null && !basePackages.isEmpty()) {
+        if (CollectionUtils.hasLength(basePackages)) {
             return true;
         }
 
-        if (namePatterns != null && !namePatterns.isEmpty()) {
+        if (CollectionUtils.hasLength(namePatterns)) {
             return true;
         }
 
-        if (classPatterns != null && !classPatterns.isEmpty()) {
+        if (CollectionUtils.hasLength(classPatterns)) {
             return true;
         }
 
-        if (annotations != null && !annotations.isEmpty()) {
+        if (CollectionUtils.hasLength(annotations)) {
             return true;
         }
 
@@ -115,7 +116,7 @@ public class SpringBeansTarget {
     }
 
     List<PathMatcher> compilePattern(List<String> patternStrings, final String separator) {
-        if (patternStrings == null || patternStrings.isEmpty()) {
+        if (CollectionUtils.isEmpty(patternStrings)) {
             return null;
         }
 

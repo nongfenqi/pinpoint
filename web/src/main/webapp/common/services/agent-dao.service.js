@@ -2,32 +2,12 @@
 	'use strict';
 
 	pinpointApp.constant( "agentDaoServiceConfig", {
-		agentStatUrl: "/getAgentStat.pinpoint",
 		dateFormat: "YYYY-MM-DD HH:mm:ss"
 	});
 
 	pinpointApp.service( "AgentDaoService", [ "agentDaoServiceConfig",
 		function AgentDaoService( cfg ) {
 
-			this.getAgentStat = function (query, cb) {
-				jQuery.ajax({
-					type: 'GET',
-					url: cfg.agentStatUrl,
-					cache: false,
-					dataType: 'json',
-					data: query,
-					success: function (result) {
-						if (angular.isFunction(cb)) {
-							cb(null, result);
-						}
-					},
-					error: function (xhr, status, error) {
-						if (angular.isFunction(cb)) {
-							cb(error, {});
-						}
-					}
-				});
-			};
 			/**
 			 * calculate a sampling rate based on the given period
 			 * @param period in minutes
@@ -227,6 +207,24 @@
 				}
 				return newData;
 			};
+			this.parseResponseTimeChartDataForAmcharts = function(responseTime, aChartData) {
+				var aAVG = aChartData.charts[ "AVG" ].points;
+				var newData = [];
+				if ( aAVG ) {
+					responseTime.isAvailable = true;
+				} else {
+					return newData;
+				}
+
+				for ( var i = 0 ; i < aAVG.length ; i++ ) {
+					newData.push({
+						"avg" : getFloatValue( aAVG[i].avgYVal ),
+						"time": moment(aAVG[i].xVal).format(cfg.dateFormat),
+						"title": "AVG"
+					});
+				}
+				return newData;
+			};
 			this.parseDataSourceChartDataForAmcharts = function (oInfo, aChartData, prefix) {
 				var returnData = [];
 				if ( aChartData.length === 0 ) {
@@ -252,7 +250,7 @@
 						returnData[fieldIndex][prefix+targetId]  = oData["avgYVal"].toFixed(1);
 					}
 				}
-				info.isAvailable = true;
+				oInfo.isAvailable = true;
 				return {
 					max: parseInt( maxAvg ) + 1,
 					data: returnData

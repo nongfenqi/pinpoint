@@ -17,41 +17,45 @@ package com.navercorp.pinpoint.profiler.context;
 
 import com.navercorp.pinpoint.bootstrap.context.*;
 import com.navercorp.pinpoint.bootstrap.context.scope.TraceScope;
-import com.navercorp.pinpoint.profiler.context.id.StatefulAsyncTraceId;
+import com.navercorp.pinpoint.common.util.Assert;
+import com.navercorp.pinpoint.profiler.context.id.TraceRoot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AsyncTrace implements Trace {
     private static final int BEGIN_STACKID = 1;
 
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
-    private final boolean isDebug = logger.isDebugEnabled();
+    private static final Logger logger = LoggerFactory.getLogger(AsyncTrace.class.getName());
+    private static final boolean isDebug = logger.isDebugEnabled();
 
-    private final Trace trace;
+    private final AsyncContextFactory asyncContextFactory;
+
+    private final TraceRoot traceRoot;
+    private final DefaultTrace trace;
     private final boolean entryPoint;
 
     private int asyncId;
     private short asyncSequence;
     private AsyncState asyncState;
 
-    public AsyncTrace(final Trace trace, final AsyncState asyncState) {
-        if (asyncState == null) {
-            throw new IllegalArgumentException("asyncState must not be null.");
-        }
-        this.trace = trace;
-        this.asyncState = asyncState;
+    public AsyncTrace(final AsyncContextFactory asyncContextFactory, final TraceRoot traceRoot, final DefaultTrace trace, final AsyncState asyncState) {
+        this.asyncContextFactory = Assert.requireNonNull(asyncContextFactory, "asyncContextFactory must not be null");
+        this.traceRoot = Assert.requireNonNull(traceRoot, "traceRoot must not be null");
+        this.trace = Assert.requireNonNull(trace, "trace must not be null");
+        this.asyncState = Assert.requireNonNull(asyncState, "asyncState must not be null");
         this.entryPoint = true;
     }
 
-    public AsyncTrace(final Trace trace, final int asyncId, final short asyncSequence, final long startTime) {
-        this.trace = trace;
+    public AsyncTrace(final AsyncContextFactory asyncContextFactory, final TraceRoot traceRoot, final DefaultTrace trace, final int asyncId, final short asyncSequence) {
+        this.asyncContextFactory = Assert.requireNonNull(asyncContextFactory, "asyncContextFactory must not be null");
+        this.traceRoot = Assert.requireNonNull(traceRoot, "traceRoot must not be null");
+        this.trace = Assert.requireNonNull(trace, "trace must not be null");
         this.asyncId = asyncId;
         this.asyncSequence = asyncSequence;
 
         this.asyncState = null;
         this.entryPoint = false;
 
-        this.trace.getSpanRecorder().recordStartTime(startTime);
         traceBlockBegin(BEGIN_STACKID);
     }
 
@@ -62,7 +66,7 @@ public class AsyncTrace implements Trace {
     @Override
     public long getId() {
         if (this.entryPoint) {
-            return this.trace.getId();
+            return traceRoot.getLocalTransactionId();
         }
 
         return -1;
@@ -71,7 +75,7 @@ public class AsyncTrace implements Trace {
     @Override
     public long getStartTime() {
         if (this.entryPoint) {
-            return this.trace.getStartTime();
+            return this.traceRoot.getTraceStartTime();
         }
 
         return 0;
@@ -80,7 +84,7 @@ public class AsyncTrace implements Trace {
     @Override
     public Thread getBindThread() {
         if (this.entryPoint) {
-            return this.trace.getBindThread();
+            return this.traceRoot.getShared().getThread();
         }
 
         return null;
@@ -88,7 +92,7 @@ public class AsyncTrace implements Trace {
 
     @Override
     public TraceId getTraceId() {
-        return trace.getTraceId();
+        return this.traceRoot.getTraceId();
     }
 
     @Override
@@ -98,7 +102,7 @@ public class AsyncTrace implements Trace {
 
     @Override
     public boolean isRoot() {
-        return trace.isRoot();
+        return this.traceRoot.getTraceId().isRoot();
     }
 
     @Override
@@ -151,19 +155,7 @@ public class AsyncTrace implements Trace {
 
     @Override
     public AsyncTraceId getAsyncTraceId() {
-        return getAsyncTraceId(false);
-    }
-
-    @Override
-    public AsyncTraceId getAsyncTraceId(boolean closeable) {
-        final AsyncTraceId asyncTraceId = this.trace.getAsyncTraceId();
-        final AsyncState asyncState = this.asyncState;
-        if (closeable && this.entryPoint && asyncState != null) {
-            asyncState.setup();
-            return new StatefulAsyncTraceId(asyncTraceId, asyncState);
-        }
-
-        return asyncTraceId;
+        return asyncContextFactory.newAsyncTraceId(traceRoot);
     }
 
     @Override
@@ -195,13 +187,9 @@ public class AsyncTrace implements Trace {
                 logger.debug("Close trace={}. asyncState={}", this, this.asyncState);
             }
         }
-        this.asyncState = null;
+
     }
 
-    @Override
-    public void flush() {
-        this.trace.flush();
-    }
 
     @Override
     public SpanRecorder getSpanRecorder() {
@@ -226,5 +214,17 @@ public class AsyncTrace implements Trace {
     @Override
     public TraceScope addScope(String name) {
         return trace.addScope(name);
+    }
+
+    @Override
+    public String toString() {
+        return "AsyncTrace{" +
+                "traceRoot=" + traceRoot +
+                ", trace=" + trace +
+                ", entryPoint=" + entryPoint +
+                ", asyncId=" + asyncId +
+                ", asyncSequence=" + asyncSequence +
+                ", asyncState=" + asyncState +
+                '}';
     }
 }

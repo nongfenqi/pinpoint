@@ -24,7 +24,7 @@
 	            templateUrl: 'features/navbar/navbar.html?v=' + G_BUILD_TIME,
 	            link: function (scope, element) {
 	                // define private variables
-	                var $application, $fromPicker, $toPicker, oNavbarVoService, $fromToCalendarPopup, bIsClickDepthInnerArea = false, bIsClickDepthInnerBtn = false, prevCallee, prevCaller;
+	                var $application, $fromPicker, $toPicker, oNavbarVoService, $fromToCalendarPopup, bIsClickDepthInnerArea = false, bIsClickDepthInnerBtn = false, prevCallee, prevCaller, prevBidirectional, prevWasOnly;
 	
 	                // define private variables of methods
 	                var initialize, initializeDateTimePicker, initializeApplication, setDateTime, getQueryEndTimeFromServer,
@@ -44,6 +44,8 @@
 	                scope.timeList = PreferenceService.getUpdateTimes();
 					scope.callee = prevCallee = PreferenceService.getCalleeByApp( scope.application );
 	                scope.caller = prevCaller = PreferenceService.getCallerByApp( scope.application );
+	                scope.bidirectional = prevBidirectional = PreferenceService.getBidirectionalByApp( scope.application );
+					scope.wasOnly = prevWasOnly = PreferenceService.getWasOnlyByApp( scope.application );
 	                scope.rangeList = PreferenceService.getDepthList();
 	                scope.applications = [
 	                    {
@@ -99,6 +101,8 @@
 						// if ( scope.application !== "" ) {
 							scope.callee = prevCallee = PreferenceService.getCalleeByApp( scope.application );
 							scope.caller = prevCaller = PreferenceService.getCallerByApp( scope.application );
+							scope.bidirectional = prevBidirectional = PreferenceService.getBidirectionalByApp( scope.application );
+							scope.wasOnly = prevWasOnly = PreferenceService.getWasOnlyByApp( scope.application );
 						// }
 	                    scope.disableApplication = true;
 	                    scope.readablePeriod = oNavbarVoService.getReadablePeriod() || UserConfigService.getPeriod();
@@ -118,7 +122,7 @@
 	                    oNavbarVoService = navbarVoService;
 	
 	                    scope.periodType = getPeriodType();
-	                    $application = element.find('.application');
+	                    $application = element.find(".application");
 	                    scope.application = oNavbarVoService.getApplication() || '';
 	                    scope.applicationName = oNavbarVoService.getApplicationName() || '';
 	                    scope.readablePeriod = oNavbarVoService.getReadablePeriod() || UserConfigService.getPeriod();
@@ -281,11 +285,17 @@
 
 						scope.callee = prevCallee = PreferenceService.getCalleeByApp(scope.application);
 	                    scope.caller = prevCaller = PreferenceService.getCallerByApp(scope.application);
+						scope.bidirectional = prevBidirectional = PreferenceService.getBidirectionalByApp(scope.application);
+						scope.wasOnly = prevWasOnly = PreferenceService.getWasOnlyByApp( scope.application );
 
 						oNavbarVoService.setCalleeRange( scope.callee );
 	                    oNavbarVoService.setCallerRange( scope.caller );
+						oNavbarVoService.setBidirectional( scope.bidirectional );
+						oNavbarVoService.setWasOnly( scope.wasOnly );
 						UrlVoService.setCallee( scope.callee );
 						UrlVoService.setCaller( scope.caller );
+						UrlVoService.setBidirectional( scope.bidirectional );
+						UrlVoService.setWasOnly( scope.wasOnly );
 
 	                    if (scope.periodType === cfg.periodType.LAST && scope.readablePeriod) {
 							oNavbarVoService.setPeriodType( cfg.periodType.LAST );
@@ -309,6 +319,7 @@
 								oNavbarVoService.setReadablePeriod( PreferenceService.getRealtimeScatterXRangeStr() );
 								oNavbarVoService.setQueryEndDateTime( CommonUtilService.formatDate( currentServerTime ) );
 								oNavbarVoService.autoCalculateByQueryEndDateTimeAndReadablePeriod();
+								UrlVoService.setReadablePeriod(cfg.periodType.REALTIME);
 								UrlVoService.setQueryEndDateTime( CommonUtilService.formatDate( currentServerTime ) );
 								UrlVoService.autoCalculateByQueryEndDateTimeAndReadablePeriod();
 								emitAsChanged();
@@ -629,17 +640,36 @@
 					scope.setCaller = function(caller) {
 						scope.caller = caller;
 					};
+					scope.getBidirectionalImgSrc = function() {
+						return "images/bidirect_" + (scope.bidirectional ? "on" : "off") + ".png";
+					};
+					scope.checkBidirectional = function() {
+						scope.bidirectional = !scope.bidirectional;
+					};
+					scope.checkWasOnly = function($event) {
+						scope.wasOnly = !scope.wasOnly;
+						if ( scope.wasOnly ) {
+							$( $event.target ).addClass("btn-info").css("color", "white");
+						} else {
+							$( $event.target ).removeClass("btn-info").css("color", "#DDD");
+						}
+						PreferenceService.setDepthByApp( scope.application + "+wasOnly", scope.wasOnly );
+						window.location.reload(true);
+					};
 					scope.setDepth = function() {
 						bIsClickDepthInnerArea = false;
 						bIsClickDepthInnerBtn = true;
 						$("#navbar_depth .dropdown-menu").trigger("click.bs.dropdown");
-						if ( prevCallee !== scope.callee || prevCaller !== scope.caller ) {
+						if ( prevCallee !== scope.callee || prevCaller !== scope.caller || prevBidirectional !== scope.bidirectional ) {
 							AnalyticsService.send(AnalyticsService.CONST.MAIN, AnalyticsService.CONST.CLK_CALLEE_RANGE, scope.callee);
 							AnalyticsService.send(AnalyticsService.CONST.MAIN, AnalyticsService.CONST.CLK_CALLER_RANGE, scope.caller);
 							prevCallee = scope.callee;
 							prevCaller = scope.caller;
+							prevBidirectional = scope.bidirectional;
+
 							PreferenceService.setDepthByApp( scope.application + "+callee", scope.callee );
 							PreferenceService.setDepthByApp( scope.application + "+caller", scope.caller );
+							PreferenceService.setDepthByApp( scope.application + "+bidirectional", scope.bidirectional );
 
 							window.location.reload(true);
 							// broadcast();
@@ -648,6 +678,7 @@
 					scope.cancelDepth = function( bHide ) {
 						scope.callee = prevCallee;
 						scope.caller = prevCaller;
+						scope.bidirectional = prevBidirectional;
 						if ( bHide ) {
 							bIsClickDepthInnerArea = false;
 							bIsClickDepthInnerBtn = true;

@@ -22,9 +22,10 @@ import com.navercorp.pinpoint.bootstrap.logging.PLoggerFactory;
 import com.navercorp.pinpoint.bootstrap.sampler.SamplingFlagUtils;
 import com.navercorp.pinpoint.bootstrap.util.NetworkUtils;
 import com.navercorp.pinpoint.bootstrap.util.NumberUtils;
-import com.navercorp.pinpoint.bootstrap.util.StringUtils;
+import com.navercorp.pinpoint.common.plugin.util.HostAndPort;
 import com.navercorp.pinpoint.common.trace.AnnotationKey;
 import com.navercorp.pinpoint.common.trace.ServiceType;
+import com.navercorp.pinpoint.common.util.StringUtils;
 import com.navercorp.pinpoint.plugin.jetty.JettyConstants;
 import com.navercorp.pinpoint.plugin.jetty.JettySyncMethodDescriptor;
 import org.eclipse.jetty.server.Request;
@@ -154,7 +155,7 @@ public abstract class AbstractServerHandleInterceptor implements AroundIntercept
             SpanEventRecorder recorder = trace.currentSpanEventRecorder();
             final Request request = getRequest(args);
             final String parameters = getRequestParameter(request, 64, 512);
-            if (parameters != null && parameters.length() > 0) {
+            if (StringUtils.hasLength(parameters)) {
                 recorder.recordAttribute(AnnotationKey.HTTP_PARAM, parameters);
             }
 
@@ -193,7 +194,7 @@ public abstract class AbstractServerHandleInterceptor implements AroundIntercept
             }
             String key = attrs.nextElement().toString();
             params.append(StringUtils.abbreviate(key, eachLimit));
-            params.append("=");
+            params.append('=');
             Object value = request.getParameter(key);
             if (value != null) {
                 params.append(StringUtils.abbreviate(StringUtils.toString(value), eachLimit));
@@ -225,7 +226,7 @@ public abstract class AbstractServerHandleInterceptor implements AroundIntercept
         recorder.recordRpcName(requestURL);
 
         final int port = request.getServerPort();
-        final String endPoint = request.getServerName() + ":" + port;
+        final String endPoint = HostAndPort.toHostAndPortString(request.getServerName(), port);
         recorder.recordEndPoint(endPoint);
 
         final String remoteAddr = request.getRemoteAddr();

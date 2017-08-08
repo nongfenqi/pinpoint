@@ -86,6 +86,34 @@ public class CollectorConfiguration implements InitializingBean {
     private String clusterListenIp;
     private int clusterListenPort;
 
+    private boolean flinkClusterEnable;
+    private String flinkClusterZookeeperAddress;
+    private int flinkClusterSessionTimeout;
+
+    public void setFlinkClusterEnable(boolean flinkClusterEnable) {
+        this.flinkClusterEnable = flinkClusterEnable;
+    }
+
+    public void setFlinkClusterZookeeperAddress(String flinkClusterZookeeperAddress) {
+        this.flinkClusterZookeeperAddress = flinkClusterZookeeperAddress;
+    }
+
+    public void setFlinkClusterSessionTimeout(int flinkClusterSessionTimeout) {
+        this.flinkClusterSessionTimeout = flinkClusterSessionTimeout;
+    }
+
+    public boolean isFlinkClusterEnable() {
+        return flinkClusterEnable;
+    }
+
+    public String getFlinkClusterZookeeperAddress() {
+        return flinkClusterZookeeperAddress;
+    }
+
+    public int getFlinkClusterSessionTimeout() {
+        return flinkClusterSessionTimeout;
+    }
+
     public String getTcpListenIp() {
         return tcpListenIp;
     }
@@ -312,7 +340,7 @@ public class CollectorConfiguration implements InitializingBean {
         readPropertyValues(this.properties);
     }
 
-    private void readPropertyValues(Properties properties) {
+    protected  void readPropertyValues(Properties properties) {
         logger.info("pinpoint-collector.properties read.");
         this.tcpListenIp = readString(properties, "collector.tcpListenIp", DEFAULT_LISTEN_IP);
         this.tcpListenPort = readInt(properties, "collector.tcpListenPort", 9994);
@@ -339,6 +367,10 @@ public class CollectorConfiguration implements InitializingBean {
         
         this.agentEventWorkerThreadSize = readInt(properties, "collector.agentEventWorker.threadSize", 32);
         this.agentEventWorkerQueueSize = readInt(properties, "collector.agentEventWorker.queueSize", 1024 * 5);
+
+        this.flinkClusterEnable = readBoolean(properties, "flink.cluster.enable");
+        this.flinkClusterZookeeperAddress = readString(properties, "flink.cluster.zookeeper.address", "");
+        this.flinkClusterSessionTimeout = readInt(properties, "flink.cluster.zookeeper.sessiontimeout", -1);
         
         String[] l4Ips = StringUtils.split(readString(properties, "collector.l4.ip", null), ",");
         if (l4Ips == null) {
@@ -360,7 +392,7 @@ public class CollectorConfiguration implements InitializingBean {
         this.clusterListenPort = readInt(properties, "cluster.listen.port", -1);
     }
 
-    private String readString(Properties properties, String propertyName, String defaultValue) {
+    protected  String readString(Properties properties, String propertyName, String defaultValue) {
         final String result = properties.getProperty(propertyName, defaultValue);
         if (logger.isInfoEnabled()) {
             logger.info("{}={}", propertyName, result);
@@ -368,7 +400,7 @@ public class CollectorConfiguration implements InitializingBean {
         return result ;
     }
 
-    private int readInt(Properties properties, String propertyName, int defaultValue) {
+    protected  int readInt(Properties properties, String propertyName, int defaultValue) {
         final String value = properties.getProperty(propertyName);
         final int result = NumberUtils.toInt(value, defaultValue);
         if (logger.isInfoEnabled()) {
@@ -377,7 +409,7 @@ public class CollectorConfiguration implements InitializingBean {
         return result;
     }
 
-    private long readLong(Properties properties, String propertyName, long defaultValue) {
+    protected  long readLong(Properties properties, String propertyName, long defaultValue) {
         final String value = properties.getProperty(propertyName);
         final long result = NumberUtils.toLong(value, defaultValue);
         if (logger.isInfoEnabled()) {
@@ -386,7 +418,7 @@ public class CollectorConfiguration implements InitializingBean {
         return result;
     }
 
-    private boolean readBoolean(Properties properties, String propertyName) {
+    protected boolean readBoolean(Properties properties, String propertyName) {
         final String value = properties.getProperty(propertyName);
         
         // if a default value will be needed afterwards, may match string value instead of Utils.

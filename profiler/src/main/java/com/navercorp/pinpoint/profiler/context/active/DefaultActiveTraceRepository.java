@@ -18,9 +18,12 @@ package com.navercorp.pinpoint.profiler.context.active;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.navercorp.pinpoint.profiler.monitor.metric.response.ReuseResponseTimeCollector;
+import com.navercorp.pinpoint.profiler.monitor.metric.response.ResponseTimeValue;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
@@ -33,6 +36,8 @@ public class DefaultActiveTraceRepository implements ActiveTraceRepository {
     private static final int DEFAULT_MAX_ACTIVE_TRACE_SIZE = 1024 * 10;
     // oom safe cache
     private final ConcurrentMap<Long, ActiveTrace> activeTraceInfoMap;
+
+    private final ReuseResponseTimeCollector reuseResponseTimeCollector = new ReuseResponseTimeCollector();
 
     public DefaultActiveTraceRepository() {
         this(DEFAULT_MAX_ACTIVE_TRACE_SIZE);
@@ -61,29 +66,46 @@ public class DefaultActiveTraceRepository implements ActiveTraceRepository {
 
     @Override
     public ActiveTrace remove(Long key) {
-        return this.activeTraceInfoMap.remove(key);
+        ActiveTrace activeTrace = this.activeTraceInfoMap.remove(key);
+        if (activeTrace != null) {
+            long responseTime = System.currentTimeMillis() - activeTrace.getStartTime();
+            reuseResponseTimeCollector.add(responseTime);
+        }
+        return activeTrace;
     }
 
     // @ThreadSafe
     @Override
     public List<ActiveTraceInfo> collect() {
         final Collection<ActiveTrace> copied = this.activeTraceInfoMap.values();
-        List<ActiveTraceInfo> collectData = new ArrayList<ActiveTraceInfo>(copied.size());
+        if (copied.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        final List<ActiveTraceInfo> collectData = new ArrayList<ActiveTraceInfo>(copied.size());
         for (ActiveTrace trace : copied) {
             final long startTime = trace.getStartTime();
             // not started
             if (startTime > 0) {
-                if (trace.isSampled()) {
-                    ActiveTraceInfo activeTraceInfo = new ActiveTraceInfo(trace.getId(), startTime, trace.getBindThread(), true, trace.getTransactionId(), trace.getEntryPoint());
-                    collectData.add(activeTraceInfo);
-                } else {
-                    // clear Trace reference
-                    ActiveTraceInfo activeTraceInfo = new ActiveTraceInfo(trace.getId(), startTime, trace.getBindThread());
-                    collectData.add(activeTraceInfo);
-                }
+                final ActiveTraceInfo snapshot = snapshot(trace);
+                collectData.add(snapshot);
             }
         }
         return collectData;
+    }
+
+    private ActiveTraceInfo snapshot(ActiveTrace trace) {
+        if (trace.isSampled()) {
+            return new ActiveTraceInfo(trace.getId(), trace.getStartTime(), trace.getBindThread(), true, trace.getTransactionId(), trace.getEntryPoint());
+        } else {
+            // clear Trace reference
+            return new ActiveTraceInfo(trace.getId(), trace.getStartTime(), trace.getBindThread());
+        }
+    }
+
+    @Override
+    public ResponseTimeValue getLatestCompletedActiveTraceResponseTimeValue() {
+        return reuseResponseTimeCollector.resetAndGetValue();
     }
 
 }

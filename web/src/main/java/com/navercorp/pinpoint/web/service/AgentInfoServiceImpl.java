@@ -23,6 +23,7 @@ import com.navercorp.pinpoint.web.dao.AgentInfoDao;
 import com.navercorp.pinpoint.web.dao.AgentLifeCycleDao;
 import com.navercorp.pinpoint.web.dao.ApplicationIndexDao;
 import com.navercorp.pinpoint.web.filter.agent.AgentEventFilter;
+import com.navercorp.pinpoint.web.service.stat.AgentWarningStatService;
 import com.navercorp.pinpoint.web.vo.AgentEvent;
 import com.navercorp.pinpoint.web.vo.AgentInfo;
 import com.navercorp.pinpoint.web.vo.AgentStatus;
@@ -33,8 +34,9 @@ import com.navercorp.pinpoint.web.vo.Range;
 import com.navercorp.pinpoint.web.vo.timeline.inspector.AgentEventTimeline;
 import com.navercorp.pinpoint.web.vo.timeline.inspector.AgentEventTimelineBuilder;
 import com.navercorp.pinpoint.web.vo.timeline.inspector.AgentStatusTimeline;
-import com.navercorp.pinpoint.web.vo.timeline.inspector.InspectorTimeline;
 import com.navercorp.pinpoint.web.vo.timeline.inspector.AgentStatusTimelineBuilder;
+import com.navercorp.pinpoint.web.vo.timeline.inspector.AgentStatusTimelineSegment;
+import com.navercorp.pinpoint.web.vo.timeline.inspector.InspectorTimeline;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.PredicateUtils;
 import org.slf4j.Logger;
@@ -44,6 +46,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -62,6 +65,9 @@ public class AgentInfoServiceImpl implements AgentInfoService {
 
     @Autowired
     private AgentEventService agentEventService;
+
+    @Autowired
+    private AgentWarningStatService agentWarningStatService;
 
     @Autowired
     private ApplicationIndexDao applicationIndexDao;
@@ -249,6 +255,11 @@ public class AgentInfoServiceImpl implements AgentInfoService {
     }
 
     @Override
+    public void populateAgentStatuses(Collection<AgentInfo> agentInfos, long timestamp) {
+        this.agentLifeCycleDao.populateAgentStatuses(agentInfos, timestamp);
+    }
+
+    @Override
     public InspectorTimeline getAgentStatusTimeline(String agentId, Range range, int... excludeAgentEventTypeCodes) {
         Assert.notNull(agentId, "agentId must not be null");
         Assert.notNull(range, "range must not be null");
@@ -256,8 +267,9 @@ public class AgentInfoServiceImpl implements AgentInfoService {
         AgentStatus initialStatus = getAgentStatus(agentId, range.getFrom());
         List<AgentEvent> agentEvents = agentEventService.getAgentEvents(agentId, range);
 
-        AgentStatusTimelineBuilder agentStatusTimelinebuilder = new AgentStatusTimelineBuilder(range, initialStatus);
-        agentStatusTimelinebuilder.from(agentEvents);
+        List<AgentStatusTimelineSegment> warningStatusTimelineSegmentList = agentWarningStatService.select(agentId, range);
+
+        AgentStatusTimelineBuilder agentStatusTimelinebuilder = new AgentStatusTimelineBuilder(range, initialStatus, agentEvents, warningStatusTimelineSegmentList);
         AgentStatusTimeline agentStatusTimeline = agentStatusTimelinebuilder.build();
 
         AgentEventTimelineBuilder agentEventTimelineBuilder = new AgentEventTimelineBuilder(range);

@@ -54,6 +54,12 @@
 					},{
 						name: "JVM CPU USAGE RATE",
 						desc: "Sends an alarm when the application's CPU usage(%) exceeds the configured threshold."
+					},{
+						name: "DATASOURCE CONNECTION USAGE RATE",
+						desc: "Sends an alarm when the application's DataSource connection usage(%) exceeds the configured threshold."
+					}, {
+						name: "DEADLOCK OCCURRENCE",
+						desc: "Sends an alarm when deadlock condition is detected in application."
 					}]
 				}]
 			}
@@ -89,6 +95,18 @@
 					}, {
 						name: "Outbound",
 						desc: "Number of depth to render for requests going out from the selected node"
+					}]
+				}]
+			},
+			bidirectional : {
+				mainStyle: "",
+				title: '<img src="images/bidirect_on.png" width="22px" height="22px" style="margin-top:-4px;"> Bidirectional Search',
+				desc: "Search-method of server map.",
+				category : [{
+					title: "[Legend]",
+					items: [{
+						name: "Bidirectional",
+						desc: " Renders inbound/outbound nodes for each and every node (within limit) even if they are not directly related to the selected node.<br>Note that checking this option may lead to overly complex server maps."
 					}]
 				}]
 			},
@@ -219,7 +237,7 @@
 					}]
 				},{
 					title: "[Usage]",
-					image: "<img src='/images/help/scatter_01.png' width='200px' height='125px'>",
+					image: "<img src='images/help/scatter_01.png' width='200px' height='125px'>",
 					items: [{
 						name: "<span class='glyphicon glyphicon-plus'></span>",
 						desc: "Drag on the scatter chart to show detailed information on selected transactions."
@@ -614,13 +632,124 @@
 					}]
 				}]
 			},
+			responseTime: {
+				mainStyle: "",
+				title: "Response time",
+				desc: "Shows the status of agent's response time.",
+				category: [{
+					title: "[Legend]",
+					items: [{
+						name: "Avg",
+						desc: "Average Response Time (unit : milliseconds)"
+					}]
+				}]
+			},
 			wrongApp: [
 				"<div style='font-size:12px'>The agent is currently registered under {{application2}} due to the following:<br>",
 				"1. The agent has moved from {{application1}} to {{application2}}<br>",
 				"2. A different agent with the same agent id has been registered to {{application2}}<hr>",
 				"For the former case, you should delete the mapping between {{application1}} and {{agentId}}.<br>",
 				"For the latter case, the agent id of the duplicate agent must be changed.</div>"
-			].join("")
+			].join(""),
+			statHeap: {
+				mainStyle: "",
+				title: "Heap",
+				desc: "Heap size used by agent JVMs",
+				category: [{
+					title: "[Legend]",
+					items: [{
+						name: "MAX",
+						desc: "Largest heap size used by agent JVMs"
+					},{
+						name: "AVG",
+						desc: "Average heap size used by agent JVMs"
+					},{
+						name: "MIN",
+						desc: "Smallest heap size used by agent JVMs"
+					}]
+				}]
+			},
+			statPermGen: {
+				mainStyle: "",
+				title: "PermGen",
+				desc: "Permgen size used by the agent JVMs",
+				category: [{
+					title: "[Legend]",
+					items: [{
+						name: "MAX",
+						desc: "Largest permgen size used by agent JVMs"
+					},{
+						name: "AVG",
+						desc: "Average permgen size used by agent JVMs"
+					},{
+						name: "MIN",
+						desc: "Smallest permgen size used by agent JVMs"
+					}]
+				}]
+			},
+			statJVMCpu: {
+				mainStyle: "",
+				title: "JVM Cpu Usage",
+				desc: "CPU used by agent JVM processes - For multi-core CPUs, displays the average CPU usage of all the cores.",
+				category: [{
+					title: "[Legend]",
+					items: [{
+						name: "MAX",
+						desc: "Largest CPU usage of agent JVM processes"
+					},{
+						name: "AVG",
+						desc: "Average CPU usage of agent JVM processes"
+					},{
+						name: "MIN",
+						desc: "Smallest CPU usage of agent JVM processes"
+					}]
+				}]
+			},
+			statSystemCpu: {
+				mainStyle: "",
+				title: "System pu Usage",
+				desc: "CPU usage of agents' whole system - For multi-core CPUs, displays the average CPU usage of all the cores.",
+				category: [{
+					title: "[Legend]",
+					items: [{
+						name: "MAX",
+						desc: "Largest system CPU usage of agents"
+					},{
+						name: "AVG",
+						desc: "Average system CPU usage of agents"
+					},{
+						name: "MIN",
+						desc: "Smallest system CPU usage of agents"
+					}]
+				},{
+					title: "[Reference]",
+					items: [{
+						name: "Java 1.6",
+						desc: "Only the JVM's CPU usage is collected"
+					},{
+						name: "Java 1.7+",
+						desc: "Both the JVM's and the system's CPU usage are collected"
+					}]
+				}]
+			},
+			statTPS: {
+				mainStyle: "",
+				title: "TPS",
+				desc: "Number of transactions received by the agents per second",
+				category: [{
+					title: "[Legend]",
+					items: [{
+						name: "MAX",
+						desc: "Highest TPS of the agents"
+					},{
+						name: "AVG",
+						desc: "Average TPS of the agents"
+					},{
+						name: "MIN",
+						desc: "Lowest TPS of the agents"
+					}]
+				}]
+			}
 		},
 		callTree: {
 			column: {
@@ -637,7 +766,7 @@
 						desc: "The overall duration of the method call from method entry until method exit"
 					},{
 						name: "Exec(%)",
-						desc: "<img src='/images/help/callTree_01.png'/>"
+						desc: "<img src='images/help/callTree_01.png'/>"
 					},{
 						name: "",
 						desc: "<span style='background-color:#FFFFFF;color:#5bc0de'>Light blue</span> The execution time of the method call as a percentage of the total execution time of the transaction"

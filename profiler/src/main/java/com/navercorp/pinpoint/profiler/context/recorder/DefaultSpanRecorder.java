@@ -18,6 +18,7 @@ package com.navercorp.pinpoint.profiler.context.recorder;
 import com.navercorp.pinpoint.profiler.context.Annotation;
 import com.navercorp.pinpoint.profiler.context.DefaultTrace;
 import com.navercorp.pinpoint.profiler.context.Span;
+import com.navercorp.pinpoint.profiler.context.id.TraceRoot;
 import com.navercorp.pinpoint.profiler.metadata.SqlMetaDataService;
 import com.navercorp.pinpoint.profiler.metadata.StringMetaDataService;
 import org.slf4j.Logger;
@@ -57,17 +58,11 @@ public class DefaultSpanRecorder extends AbstractRecorder implements SpanRecorde
     }
 
     @Override
-    void setExceptionInfo(int exceptionClassId, String exceptionMessage) {
-        setExceptionInfo(true, exceptionClassId, exceptionMessage);
-    }
-
-    @Override
     void setExceptionInfo(boolean markError, int exceptionClassId, String exceptionMessage) {
         span.setExceptionInfo(exceptionClassId, exceptionMessage);
         if (markError) {
-            if (!span.isSetErrCode()) {
-                span.setErrCode(1);
-            }
+            final TraceRoot traceRoot = span.getTraceRoot();
+            traceRoot.getShared().maskErrorCode(1);
         }
     }
 
@@ -93,6 +88,7 @@ public class DefaultSpanRecorder extends AbstractRecorder implements SpanRecorde
     @Override
     public void recordRpcName(String rpc) {
         span.setRpc(rpc);
+        span.getTraceRoot().getShared().setRpcName(rpc);
     }
 
     @Override
@@ -103,15 +99,16 @@ public class DefaultSpanRecorder extends AbstractRecorder implements SpanRecorde
     @Override
     public void recordEndPoint(String endPoint) {
         span.setEndPoint(endPoint);
+        span.getTraceRoot().getShared().setEndPoint(endPoint);
     }
 
     @Override
     public void recordParentApplication(String parentApplicationName, short parentApplicationType) {
-            span.setParentApplicationName(parentApplicationName);
-            span.setParentApplicationType(parentApplicationType);
-            if (isDebug) {
-                logger.debug("ParentApplicationName marked. parentApplicationName={}", parentApplicationName);
-            }
+        span.setParentApplicationName(parentApplicationName);
+        span.setParentApplicationType(parentApplicationType);
+        if (isDebug) {
+            logger.debug("ParentApplicationName marked. parentApplicationName={}", parentApplicationName);
+        }
     }
 
     @Override
@@ -134,9 +131,8 @@ public class DefaultSpanRecorder extends AbstractRecorder implements SpanRecorde
     
     @Override
     public void recordLogging(LoggingInfo loggingInfo) {
-        if (!span.isSetLoggingTransactionInfo()) {
-            span.setLoggingTransactionInfo(loggingInfo.getCode()); 
-        }
+        final TraceRoot traceRoot = span.getTraceRoot();
+        traceRoot.getShared().setLoggingInfo(loggingInfo.getCode());
     }
     
     @Override

@@ -66,6 +66,10 @@ public interface ProfilerConfig {
 
     int getDataSourceTraceLimitSize();
 
+    boolean isDeadlockMonitorEnable();
+
+    long getDeadlockMonitorInterval();
+
     int getSpanDataSenderSocketTimeout();
 
     String getSpanDataSenderSocketType();
@@ -112,6 +116,12 @@ public interface ProfilerConfig {
     boolean isPropagateInterceptorException();
 
     String getProfileInstrumentEngine();
+
+    boolean isSupportLambdaExpressions();
+
+    boolean isInstrumentMatcherEnable();
+
+    InstrumentMatcherCacheConfig getInstrumentMatcherCacheConfig();
 
     String readString(String propertyName, String defaultValue);
 

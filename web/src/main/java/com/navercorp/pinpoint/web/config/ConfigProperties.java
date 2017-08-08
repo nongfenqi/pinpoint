@@ -43,17 +43,23 @@ public class ConfigProperties {
     @Value("#{pinpointWebProps['config.enable.activeThreadDump'] ?: false}")
     private boolean enableActiveThreadDump;
 
+    @Value("#{pinpointWebProps['config.enable.serverMapRealTime'] ?: false}")
+    private boolean enableServerMapRealTime;
+
     @Value("#{pinpointWebProps['config.openSource'] ?: true}")
     private boolean openSource;
     
     @Value("#{pinpointWebProps['security.guide.url']}")
     private String securityGuideUrl;
 
-    public String getSecurityGuideUrl() {
-		return securityGuideUrl;
-	}
+    @Value("#{pinpointWebProps['config.show.applicationStat'] ?: false}")
+    private boolean showApplicationStat;
 
-	public boolean getEditUserInfo() {
+    public String getSecurityGuideUrl() {
+        return securityGuideUrl;
+    }
+
+    public boolean getEditUserInfo() {
         return editUserInfo;
     }
 
@@ -77,8 +83,16 @@ public class ConfigProperties {
         return enableActiveThreadDump;
     }
 
+    public boolean isEnableServerMapRealTime() {
+        return enableServerMapRealTime;
+    }
+
     public boolean isOpenSource() {
         return this.openSource;
+    }
+
+    public boolean isShowApplicationStat() {
+        return this.showApplicationStat;
     }
 
     @Override
@@ -90,10 +104,10 @@ public class ConfigProperties {
         sb.append(", showActiveThreadDump=").append(showActiveThreadDump);
         sb.append(", showInspectorDataSource=").append(showInspectorDataSource);
         sb.append(", enableActiveThreadDump=").append(enableActiveThreadDump);
+        sb.append(", enableServerMapRealTime=").append(enableServerMapRealTime);
         sb.append(", openSource=").append(openSource);
         sb.append(", securityGuideUrl='").append(securityGuideUrl).append('\'');
         sb.append('}');
         return sb.toString();
     }
-
 }

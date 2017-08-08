@@ -26,9 +26,10 @@ import com.navercorp.pinpoint.bootstrap.util.NetworkUtils;
 import com.navercorp.pinpoint.bootstrap.util.NumberUtils;
 import com.navercorp.pinpoint.bootstrap.util.SimpleSampler;
 import com.navercorp.pinpoint.bootstrap.util.SimpleSamplerFactory;
-import com.navercorp.pinpoint.bootstrap.util.StringUtils;
+import com.navercorp.pinpoint.common.plugin.util.HostAndPort;
 import com.navercorp.pinpoint.common.trace.AnnotationKey;
 import com.navercorp.pinpoint.common.trace.ServiceType;
+import com.navercorp.pinpoint.common.util.StringUtils;
 import com.navercorp.pinpoint.plugin.resin.AsyncAccessor;
 import com.navercorp.pinpoint.plugin.resin.HttpServletRequestGetter;
 import com.navercorp.pinpoint.plugin.resin.ResinConfig;
@@ -58,7 +59,7 @@ public class ServletInvocationInterceptor implements AroundInterceptor {
     private final Filter<String> excludeProfileMethodFilter;
     private final RemoteAddressResolver<HttpServletRequest> remoteAddressResolver;
 
-    private MethodDescriptor methodDescriptor;
+    private final MethodDescriptor methodDescriptor;
     private final TraceContext traceContext;
 
     private final boolean isTraceCookies;
@@ -75,7 +76,7 @@ public class ServletInvocationInterceptor implements AroundInterceptor {
         ResinConfig resinConfig = new ResinConfig(traceContext.getProfilerConfig());
         this.excludeUrlFilter = resinConfig.getResinExcludeUrlFilter();
         final String proxyIpHeader = resinConfig.getResinRealIpHeader();
-        if (proxyIpHeader == null || proxyIpHeader.isEmpty()) {
+        if (StringUtils.isEmpty(proxyIpHeader)) {
             this.remoteAddressResolver = new Bypass<HttpServletRequest>();
         } else {
             final String tomcatRealIpEmptyValue = resinConfig.getResinRealIpEmptyValue();
@@ -137,7 +138,7 @@ public class ServletInvocationInterceptor implements AroundInterceptor {
                 final HttpServletRequest request = (HttpServletRequest) args[0];
                 if (!excludeProfileMethodFilter.filter(request.getMethod())) {
                     final String parameters = getRequestParameter(request, 64, 512);
-                    if (parameters != null && parameters.length() > 0) {
+                    if (StringUtils.hasLength(parameters)) {
                         recorder.recordAttribute(AnnotationKey.HTTP_PARAM, parameters);
                     }
                 }
@@ -179,7 +180,7 @@ public class ServletInvocationInterceptor implements AroundInterceptor {
             }
             String key = attrs.nextElement().toString();
             params.append(StringUtils.abbreviate(key, eachLimit));
-            params.append("=");
+            params.append('=');
             Object value = request.getParameter(key);
             if (value != null) {
                 params.append(StringUtils.abbreviate(StringUtils.toString(value), eachLimit));
@@ -317,7 +318,7 @@ public class ServletInvocationInterceptor implements AroundInterceptor {
         recorder.recordRpcName(requestURL);
 
         final int port = request.getServerPort();
-        final String endPoint = request.getServerName() + ":" + port;
+        final String endPoint = HostAndPort.toHostAndPortString(request.getServerName(), port);
         recorder.recordEndPoint(endPoint);
 
         final String remoteAddr = remoteAddressResolver.resolve(request);
@@ -413,7 +414,7 @@ public class ServletInvocationInterceptor implements AroundInterceptor {
         public String resolve(T httpServletRequest) {
             final String realIp = httpServletRequest.getHeader(this.realIpHeaderName);
 
-            if (realIp == null || realIp.isEmpty()) {
+            if (StringUtils.isEmpty(realIp)) {
                 return httpServletRequest.getRemoteAddr();
             }
 

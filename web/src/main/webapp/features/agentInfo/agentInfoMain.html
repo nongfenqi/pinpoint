@@ -28,30 +28,33 @@
 					 <span class="input-group-btn">
 						 <button class="btn btn-default btn-success"><span class="current-point"></span></button>
 					 </span>
-					 <input id="target-picker" type="text" class="form-control">
+					 <input type="text" class="form-control" value="{{targetPicker}}">
 				</div>
 			</div>
 			<span>Timeline</span>
-			<svg id="timeSlider" class="timeSlider" width="100%" height="90px" style="margin-top:6px"></svg>
+			<svg id="timeSlider-for-agent-info" class="timeSlider" width="100%" height="90px" style="margin-top:6px"></svg>
 		</div>
 		<div class="panel panel-info" ng-show="showEventInfo">
 			<div class="panel-heading">
-				<h3 class="panel-title">{{eventInfo.eventTypeDesc}} - Event <span class="glyphicon glyphicon-remove" style="float:right;cursor:pointer" aria-hidden="true" ng-click="hideEventInfo()"></span></h3>
+				<h3 class="panel-title">Event - {{eventInfo.length}}<span class="glyphicon glyphicon-remove" style="float:right;cursor:pointer" aria-hidden="true" ng-click="hideEventInfo()"></span></h3>
 			</div>
 			<div class="panel-body">
-				<table class="table table-condensed" style="font-size:12px;">
+				<table class="table table-condensed" style="font-size:12px;margin-bottom:0px;">
+					<colgroup>
+						<col class="col-md-3">
+						<col class="col-md-3">
+						<col class="col-md-6">
+					</colgroup>
+					<thead>
+						<th>Time</th>
+						<th>Description</th>
+						<th>Message</th>
+					</thead>
 					<tbody>
-						<tr>
-							<td class="col-md-2 text-left"><strong>Event Time</strong></td>
-							<td class="col-md-10 text-left">{{formatDate(eventInfo.eventTimestamp)}}</td>
-						</tr>
-						<tr>
-							<td class="text-left"><strong>Description</strong></td>
-							<td class="text-left">{{eventInfo.eventTypeDesc}}</td>
-						</tr>
-						<tr ng-show="eventInfo.hasEventMessage">
-							<td class="text-left"><strong>Message</strong></td>
-							<td class="text-left">{{eventInfo.eventMessage}}</td>
+						<tr ng-repeat="event in eventInfo">
+							<td>{{formatDate(event.eventTimestamp)}}</td>
+							<td>{{event.eventTypeDesc}}</td>
+							<td ng-bind-html="replaceNewLineToBR(event.eventMessage)"></td>
 						</tr>
 					</tbody>
 				</table>
@@ -197,6 +200,13 @@
 					<h4><span class="glyphicon glyphicon-question-sign activeThreadTooltip" style="cursor:pointer;float:right;"></span> {{activeTraceChart.title}}</h4>
 					<active-trace-chart-directive namespace="forActiveTrace"></active-trace-chart-directive>
 				</div>
+				<div class="col-md-6">
+					<h4><span class="glyphicon glyphicon-question-sign responseTimeTooltip" style="cursor:pointer;float:right;"></span> {{responseTimeChart.title}}</h4>
+					<response-time-chart-directive namespace="forResponseTime"></response-time-chart-directive>
+				</div>
+			</div>
+			<hr>
+			<div class="row">
 				<div class="col-md-6" ng-if="enableDataSourceChart" id="data-source-chart">
 					<h4>
 						<span class="glyphicon glyphicon-question-sign dataSourceTooltip" style="cursor:pointer;float:right;"></span> {{dataSourceChartDescription.title}}
@@ -253,6 +263,7 @@
 						</div>
 					</div>
 				</div>
+				<div class="col-md-6"></div>
 			</div>
 		</div>
 	</div>

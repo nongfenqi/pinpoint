@@ -16,8 +16,8 @@
 
 package com.navercorp.pinpoint.profiler.receiver.service;
 
+import com.navercorp.pinpoint.profiler.context.active.ActiveTraceHistogram;
 import com.navercorp.pinpoint.profiler.context.active.ActiveTraceHistogramFactory;
-import com.navercorp.pinpoint.profiler.context.active.ActiveTraceHistogramFactory.ActiveTraceHistogram;
 import com.navercorp.pinpoint.profiler.context.active.ActiveTraceRepository;
 import com.navercorp.pinpoint.profiler.receiver.CommandSerializer;
 import com.navercorp.pinpoint.profiler.receiver.ProfilerRequestCommandService;
@@ -83,7 +83,7 @@ public class ActiveThreadCountService implements ProfilerRequestCommandService, 
     @Override
     public TBase<?, ?> requestCommandService(TBase activeThreadCountObject) {
         if (activeThreadCountObject == null) {
-            throw new NullPointerException("activeThreadCountObject may not be null.");
+            throw new NullPointerException("activeThreadCountObject must not be null.");
         }
 
         return getActiveThreadCountResponse();

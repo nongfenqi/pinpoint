@@ -16,18 +16,16 @@
 
 package com.navercorp.pinpoint.profiler.context.active;
 
-import com.navercorp.pinpoint.bootstrap.context.AsyncTraceId;
 import com.navercorp.pinpoint.bootstrap.context.Trace;
 import com.navercorp.pinpoint.bootstrap.context.TraceId;
 import com.navercorp.pinpoint.profiler.context.TraceFactory;
-import com.navercorp.pinpoint.profiler.context.TraceFactoryWrapper;
 
 /**
  * @author Taejin Koo
  * @author emeroad
  * @author HyunGil Jeong
  */
-public class ActiveTraceFactory implements TraceFactory, TraceFactoryWrapper {
+public class ActiveTraceFactory implements TraceFactory {
 
     private final TraceFactory delegate;
     private final ActiveTraceRepository activeTraceRepository;
@@ -49,22 +47,8 @@ public class ActiveTraceFactory implements TraceFactory, TraceFactoryWrapper {
     }
 
     @Override
-    public TraceFactory unwrap() {
-        final TraceFactory copy = this.delegate;
-        if (copy instanceof TraceFactoryWrapper) {
-            return ((TraceFactoryWrapper) copy).unwrap();
-        }
-        return copy;
-    }
-
-    @Override
     public Trace currentTraceObject() {
         return this.delegate.currentTraceObject();
-    }
-
-    @Override
-    public Trace currentRpcTraceObject() {
-        return this.delegate.currentRpcTraceObject();
     }
 
     @Override
@@ -81,8 +65,8 @@ public class ActiveTraceFactory implements TraceFactory, TraceFactoryWrapper {
     }
 
     @Override
-    public Trace continueTraceObject(TraceId traceID) {
-        final Trace trace = this.delegate.continueTraceObject(traceID);
+    public Trace continueTraceObject(TraceId traceId) {
+        final Trace trace = this.delegate.continueTraceObject(traceId);
         // Sampled continuation
         attachTrace(trace);
         return trace;
@@ -95,13 +79,8 @@ public class ActiveTraceFactory implements TraceFactory, TraceFactoryWrapper {
     }
 
     @Override
-    public Trace continueAsyncTraceObject(AsyncTraceId traceId, int asyncId, long startTime) {
-        return this.delegate.continueAsyncTraceObject(traceId, asyncId, startTime);
-    }
-
-    @Override
-    public Trace continueAsyncTraceObject(TraceId traceID) {
-        final Trace trace = this.delegate.continueAsyncTraceObject(traceID);
+    public Trace continueAsyncTraceObject(TraceId traceId) {
+        final Trace trace = this.delegate.continueAsyncTraceObject(traceId);
         // Sampled continuation
         attachTrace(trace);
         return trace;

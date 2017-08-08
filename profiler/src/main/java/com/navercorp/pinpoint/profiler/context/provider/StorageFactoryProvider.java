@@ -20,11 +20,16 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.navercorp.pinpoint.bootstrap.config.ProfilerConfig;
 import com.navercorp.pinpoint.profiler.context.SpanChunkFactory;
+import com.navercorp.pinpoint.profiler.context.SpanPostProcessor;
 import com.navercorp.pinpoint.profiler.context.module.SpanDataSender;
 import com.navercorp.pinpoint.profiler.context.storage.BufferedStorageFactory;
 import com.navercorp.pinpoint.profiler.context.storage.SpanStorageFactory;
 import com.navercorp.pinpoint.profiler.context.storage.StorageFactory;
+import com.navercorp.pinpoint.profiler.context.storage.TraceLogDelegateStorage;
+import com.navercorp.pinpoint.profiler.context.storage.TraceLogDelegateStorageFactory;
 import com.navercorp.pinpoint.profiler.sender.DataSender;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Woonduk Kang(emeroad)
@@ -33,10 +38,11 @@ public class StorageFactoryProvider implements Provider<StorageFactory> {
 
     private final ProfilerConfig profilerConfig;
     private final DataSender spanDataSender;
+    private final SpanPostProcessor spanPostProcessor;
     private final SpanChunkFactory spanChunkFactory;
 
     @Inject
-    public StorageFactoryProvider(ProfilerConfig profilerConfig, @SpanDataSender DataSender spanDataSender, SpanChunkFactory spanChunkFactory) {
+    public StorageFactoryProvider(ProfilerConfig profilerConfig, @SpanDataSender DataSender spanDataSender, SpanPostProcessor spanPostProcessor, SpanChunkFactory spanChunkFactory) {
         if (profilerConfig == null) {
             throw new NullPointerException("profilerConfig must not be null");
         }
@@ -49,14 +55,23 @@ public class StorageFactoryProvider implements Provider<StorageFactory> {
 
         this.profilerConfig = profilerConfig;
         this.spanDataSender = spanDataSender;
+        this.spanPostProcessor = spanPostProcessor;
         this.spanChunkFactory = spanChunkFactory;
     }
 
     @Override
     public StorageFactory get() {
+        StorageFactory storageFactory = newStorageFactory();
+        if (isTraceLogEnabled()) {
+            storageFactory = new TraceLogDelegateStorageFactory(storageFactory);
+        }
+        return storageFactory;
+    }
+
+    private StorageFactory newStorageFactory() {
         if (profilerConfig.isIoBufferingEnable()) {
             int ioBufferingBufferSize = this.profilerConfig.getIoBufferingBufferSize();
-            return new BufferedStorageFactory(ioBufferingBufferSize, this.spanDataSender, this.spanChunkFactory);
+            return new BufferedStorageFactory(ioBufferingBufferSize, this.spanDataSender, this.spanPostProcessor, this.spanChunkFactory);
         } else {
             return new SpanStorageFactory(spanDataSender);
         }
@@ -69,5 +84,10 @@ public class StorageFactoryProvider implements Provider<StorageFactory> {
                 ", spanDataSender=" + spanDataSender +
                 ", spanChunkFactory=" + spanChunkFactory +
                 '}';
+    }
+
+    public boolean isTraceLogEnabled() {
+        final Logger logger = LoggerFactory.getLogger(TraceLogDelegateStorage.class.getName());
+        return logger.isTraceEnabled();
     }
 }

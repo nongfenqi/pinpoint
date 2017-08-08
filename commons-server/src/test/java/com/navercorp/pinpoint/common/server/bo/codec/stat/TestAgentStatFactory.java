@@ -21,11 +21,14 @@ import com.navercorp.pinpoint.common.server.bo.stat.ActiveTraceBo;
 import com.navercorp.pinpoint.common.server.bo.stat.CpuLoadBo;
 import com.navercorp.pinpoint.common.server.bo.stat.DataSourceBo;
 import com.navercorp.pinpoint.common.server.bo.stat.DataSourceListBo;
+import com.navercorp.pinpoint.common.server.bo.stat.DeadlockBo;
 import com.navercorp.pinpoint.common.server.bo.stat.JvmGcBo;
 import com.navercorp.pinpoint.common.server.bo.stat.JvmGcDetailedBo;
+import com.navercorp.pinpoint.common.server.bo.stat.ResponseTimeBo;
 import com.navercorp.pinpoint.common.server.bo.stat.TransactionBo;
 import com.navercorp.pinpoint.common.trace.ServiceType;
 import com.navercorp.pinpoint.common.trace.SlotType;
+import org.apache.commons.lang3.RandomUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,14 +42,14 @@ import java.util.Random;
  */
 public class TestAgentStatFactory {
 
-    private static final int MAX_NUM_TEST_VALUES = 20;
+    private static final int MAX_NUM_TEST_VALUES = 20 + 1; // Random API's upper bound field is exclusive
 
     private static final long TIMESTAMP_INTERVAL = 5000L;
 
     private static final Random RANDOM = new Random();
 
     public static List<JvmGcBo> createJvmGcBos(String agentId, long startTimestamp, long initialTimestamp) {
-        final int numValues = RANDOM.nextInt(MAX_NUM_TEST_VALUES) + 1;
+        final int numValues = RandomUtils.nextInt(1, MAX_NUM_TEST_VALUES);
         return createJvmGcBos(agentId, startTimestamp, initialTimestamp, numValues);
     }
 
@@ -104,7 +107,7 @@ public class TestAgentStatFactory {
     }
 
     public static List<JvmGcDetailedBo> createJvmGcDetailedBos(String agentId, long startTimestamp, long initialTimestamp) {
-        final int numValues = RANDOM.nextInt(MAX_NUM_TEST_VALUES) + 1;
+        final int numValues = RandomUtils.nextInt(1, MAX_NUM_TEST_VALUES);
         return createJvmGcDetailedBos(agentId, startTimestamp, initialTimestamp, numValues);
     }
 
@@ -149,7 +152,7 @@ public class TestAgentStatFactory {
     }
 
     public static List<CpuLoadBo> createCpuLoadBos(String agentId, long startTimestamp, long initialTimestamp) {
-        final int numValues = RANDOM.nextInt(MAX_NUM_TEST_VALUES) + 1;
+        final int numValues = RandomUtils.nextInt(1, MAX_NUM_TEST_VALUES);
         return createCpuLoadBos(agentId, startTimestamp, initialTimestamp, numValues);
     }
 
@@ -172,7 +175,7 @@ public class TestAgentStatFactory {
     }
 
     public static List<TransactionBo> createTransactionBos(String agentId, long startTimestamp, long initialTimestamp) {
-        final int numValues = RANDOM.nextInt(MAX_NUM_TEST_VALUES) + 1;
+        final int numValues = RandomUtils.nextInt(1, MAX_NUM_TEST_VALUES);
         return createTransactionBos(agentId, startTimestamp, initialTimestamp, numValues);
     }
 
@@ -226,7 +229,7 @@ public class TestAgentStatFactory {
     }
 
     public static List<ActiveTraceBo> createActiveTraceBos(String agentId, long startTimestamp, long initialTimestamp) {
-        final int numValues = RANDOM.nextInt(MAX_NUM_TEST_VALUES) + 1;
+        final int numValues = RandomUtils.nextInt(1, MAX_NUM_TEST_VALUES);
         return createActiveTraceBos(agentId, startTimestamp, initialTimestamp, numValues);
     }
 
@@ -260,10 +263,53 @@ public class TestAgentStatFactory {
         return activeTraceBos;
     }
 
+    public static List<ResponseTimeBo> createResponseTimeBos(String agentId, long startTimestamp, long initialTimestamp) {
+        final int numValues = RandomUtils.nextInt(1, MAX_NUM_TEST_VALUES);
+        return createResponseTimeBos(agentId, startTimestamp, initialTimestamp, numValues);
+    }
+
+    public static List<ResponseTimeBo> createResponseTimeBos(String agentId, long startTimestamp, long initialTimestamp, int numValues) {
+        List<ResponseTimeBo> responseTimeBos = new ArrayList<ResponseTimeBo>(numValues);
+        List<Long> startTimestamps = createStartTimestamps(startTimestamp, numValues);
+        List<Long> timestamps = createTimestamps(initialTimestamp, numValues);
+        List<Long> avgs = TestAgentStatDataPointFactory.LONG.createRandomValues(0L, 1000L, numValues);
+        for (int i = 0; i < numValues; ++i) {
+            ResponseTimeBo responseTimeBo = new ResponseTimeBo();
+            responseTimeBo.setAgentId(agentId);
+            responseTimeBo.setStartTimestamp(startTimestamps.get(i));
+            responseTimeBo.setTimestamp(timestamps.get(i));
+            responseTimeBo.setAvg(avgs.get(i));
+            responseTimeBos.add(responseTimeBo);
+        }
+        return responseTimeBos;
+    }
+
+    public static List<DeadlockBo> createDeadlockBos(String agentId, long startTimestamp, long initialTimestamp) {
+        final int numValues = RandomUtils.nextInt(1, MAX_NUM_TEST_VALUES);
+        return createDeadlockBos(agentId, startTimestamp, initialTimestamp, numValues);
+    }
+
+    public static List<DeadlockBo> createDeadlockBos(String agentId, long startTimestamp, long initialTimestamp, int numValues) {
+        List<DeadlockBo> deadlockBos = new ArrayList<DeadlockBo>(numValues);
+        List<Long> startTimestamps = createStartTimestamps(startTimestamp, numValues);
+        List<Long> timestamps = createTimestamps(initialTimestamp, numValues);
+        List<Integer> deadlockCounts = TestAgentStatDataPointFactory.INTEGER.createRandomValues(0, 1000, numValues);
+        for (int i = 0; i < numValues; ++i) {
+            DeadlockBo deadlockBo = new DeadlockBo();
+            deadlockBo.setAgentId(agentId);
+            deadlockBo.setStartTimestamp(startTimestamps.get(i));
+            deadlockBo.setTimestamp(timestamps.get(i));
+            deadlockBo.setDeadlockedThreadCount(deadlockCounts.get(i));
+
+            deadlockBos.add(deadlockBo);
+        }
+        return deadlockBos;
+    }
+
     private static final int MIN_VALUE_OF_MAX_CONNECTION_SIZE = 20;
 
     public static List<DataSourceListBo> createDataSourceListBos(String agentId, long startTimestamp, long initialTimestamp) {
-        final int numValues = RANDOM.nextInt(MAX_NUM_TEST_VALUES) + 1;
+        final int numValues = RandomUtils.nextInt(1, MAX_NUM_TEST_VALUES);
         return createDataSourceListBos(agentId, startTimestamp, initialTimestamp, numValues);
     }
 
@@ -271,8 +317,8 @@ public class TestAgentStatFactory {
         List<DataSourceListBo> dataSourceListBos = new ArrayList<DataSourceListBo>(numValues);
 
         for (int i = 0; i < numValues; ++i) {
-            int maxConnectionSize = RANDOM.nextInt(MIN_VALUE_OF_MAX_CONNECTION_SIZE) + MIN_VALUE_OF_MAX_CONNECTION_SIZE;
-            int dataSourceBoSize = RANDOM.nextInt(MAX_NUM_TEST_VALUES) + 1;
+            int maxConnectionSize = RandomUtils.nextInt(MIN_VALUE_OF_MAX_CONNECTION_SIZE, MIN_VALUE_OF_MAX_CONNECTION_SIZE * 2);
+            int dataSourceBoSize = RandomUtils.nextInt(1, MAX_NUM_TEST_VALUES);
             DataSourceListBo dataSourceListBo = createDataSourceListBo(agentId, startTimestamp, initialTimestamp, i + 1, maxConnectionSize, dataSourceBoSize);
             dataSourceListBos.add(dataSourceListBo);
         }

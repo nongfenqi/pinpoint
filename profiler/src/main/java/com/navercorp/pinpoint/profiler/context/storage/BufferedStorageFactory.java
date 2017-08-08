@@ -17,6 +17,8 @@
 package com.navercorp.pinpoint.profiler.context.storage;
 
 import com.navercorp.pinpoint.profiler.context.SpanChunkFactory;
+import com.navercorp.pinpoint.profiler.context.SpanPostProcessor;
+import com.navercorp.pinpoint.profiler.context.id.TraceRoot;
 import com.navercorp.pinpoint.profiler.sender.DataSender;
 
 /**
@@ -26,9 +28,10 @@ public class BufferedStorageFactory implements StorageFactory {
 
     private final DataSender dataSender;
     private final int ioBufferingBufferSize;
+    private final SpanPostProcessor spanPostProcessor;
     private final SpanChunkFactory spanChunkFactory;
 
-    public BufferedStorageFactory(int ioBufferingBufferSize, DataSender dataSender, SpanChunkFactory spanChunkFactory) {
+    public BufferedStorageFactory(int ioBufferingBufferSize, DataSender dataSender, SpanPostProcessor spanPostProcessor, SpanChunkFactory spanChunkFactory) {
         if (dataSender == null) {
             throw new NullPointerException("dataSender must not be null");
         }
@@ -38,14 +41,14 @@ public class BufferedStorageFactory implements StorageFactory {
         this.dataSender = dataSender;
 
         this.ioBufferingBufferSize = ioBufferingBufferSize;
-
+        this.spanPostProcessor = spanPostProcessor;
         this.spanChunkFactory = spanChunkFactory;
     }
 
 
     @Override
-    public Storage createStorage() {
-        BufferedStorage bufferedStorage = new BufferedStorage(this.dataSender, spanChunkFactory, this.ioBufferingBufferSize);
+    public Storage createStorage(TraceRoot traceRoot) {
+        BufferedStorage bufferedStorage = new BufferedStorage(traceRoot, this.dataSender, spanPostProcessor, spanChunkFactory, this.ioBufferingBufferSize);
         return bufferedStorage;
     }
 

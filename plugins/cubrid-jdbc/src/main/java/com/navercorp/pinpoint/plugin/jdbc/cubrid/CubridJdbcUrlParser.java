@@ -24,6 +24,7 @@ import com.navercorp.pinpoint.bootstrap.plugin.jdbc.JdbcUrlParserV2;
 import com.navercorp.pinpoint.bootstrap.plugin.jdbc.StringMaker;
 import com.navercorp.pinpoint.bootstrap.plugin.jdbc.UnKnownDatabaseInfo;
 import com.navercorp.pinpoint.common.trace.ServiceType;
+import com.navercorp.pinpoint.common.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +52,7 @@ public class CubridJdbcUrlParser implements JdbcUrlParserV2 {
     @Override
     public DatabaseInfo parse(String jdbcUrl) {
         if (jdbcUrl == null) {
-            logger.info("jdbcUrl may not be null");
+            logger.info("jdbcUrl must not be null");
             return UnKnownDatabaseInfo.INSTANCE;
         }
         final Matcher matcher = PREFIX_PATTERN.matcher(jdbcUrl);
@@ -87,7 +88,7 @@ public class CubridJdbcUrlParser implements JdbcUrlParserV2 {
 
 //        String resolvedUrl;
 
-        if (host == null || host.length() == 0) {
+        if (StringUtils.isEmpty(host)) {
             host = DEFAULT_HOSTNAME;
         }
 

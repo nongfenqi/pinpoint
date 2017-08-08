@@ -30,9 +30,10 @@ import com.navercorp.pinpoint.bootstrap.logging.PLoggerFactory;
 import com.navercorp.pinpoint.bootstrap.sampler.SamplingFlagUtils;
 import com.navercorp.pinpoint.bootstrap.util.NetworkUtils;
 import com.navercorp.pinpoint.bootstrap.util.NumberUtils;
-import com.navercorp.pinpoint.bootstrap.util.StringUtils;
+import com.navercorp.pinpoint.common.plugin.util.HostAndPort;
 import com.navercorp.pinpoint.common.trace.AnnotationKey;
 import com.navercorp.pinpoint.common.trace.ServiceType;
+import com.navercorp.pinpoint.common.util.StringUtils;
 import com.navercorp.pinpoint.plugin.tomcat.AsyncAccessor;
 import com.navercorp.pinpoint.plugin.tomcat.ServletAsyncMethodDescriptor;
 import com.navercorp.pinpoint.plugin.tomcat.ServletSyncMethodDescriptor;
@@ -68,7 +69,7 @@ public class StandardHostValveInvokeInterceptor implements AroundInterceptor {
         this.excludeUrlFilter = tomcatConfig.getTomcatExcludeUrlFilter();
 
         final String proxyIpHeader = tomcatConfig.getTomcatRealIpHeader();
-        if (proxyIpHeader == null || proxyIpHeader.isEmpty()) {
+        if (StringUtils.isEmpty(proxyIpHeader)) {
             this.remoteAddressResolver = new Bypass<HttpServletRequest>();
         } else {
             final String tomcatRealIpEmptyValue = tomcatConfig.getTomcatRealIpEmptyValue();
@@ -139,7 +140,7 @@ public class StandardHostValveInvokeInterceptor implements AroundInterceptor {
         public String resolve(T httpServletRequest) {
             final String realIp = httpServletRequest.getHeader(this.realIpHeaderName);
 
-            if (realIp == null || realIp.isEmpty()) {
+            if (StringUtils.isEmpty(realIp)) {
                 return httpServletRequest.getRemoteAddr();
             }
 
@@ -266,7 +267,7 @@ public class StandardHostValveInvokeInterceptor implements AroundInterceptor {
         recorder.recordRpcName(requestURL);
 
         final int port = request.getServerPort();
-        final String endPoint = request.getServerName() + ":" + port;
+        final String endPoint = HostAndPort.toHostAndPortString(request.getServerName(), port);
         recorder.recordEndPoint(endPoint);
 
         final String remoteAddr = remoteAddressResolver.resolve(request);
@@ -317,7 +318,7 @@ public class StandardHostValveInvokeInterceptor implements AroundInterceptor {
                 final HttpServletRequest request = (HttpServletRequest) args[0];
                 if (!excludeProfileMethodFilter.filter(request.getMethod())) {
                     final String parameters = getRequestParameter(request, 64, 512);
-                    if (parameters != null && parameters.length() > 0) {
+                    if (StringUtils.hasLength(parameters)) {
                         recorder.recordAttribute(AnnotationKey.HTTP_PARAM, parameters);
                     }
                 }
@@ -384,7 +385,7 @@ public class StandardHostValveInvokeInterceptor implements AroundInterceptor {
             }
             String key = attrs.nextElement().toString();
             params.append(StringUtils.abbreviate(key, eachLimit));
-            params.append("=");
+            params.append('=');
             Object value = request.getParameter(key);
             if (value != null) {
                 params.append(StringUtils.abbreviate(StringUtils.toString(value), eachLimit));

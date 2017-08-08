@@ -15,7 +15,7 @@
  */
 package com.navercorp.pinpoint.plugin.vertx.interceptor;
 
-import com.navercorp.pinpoint.bootstrap.async.AsyncTraceIdAccessor;
+import com.navercorp.pinpoint.bootstrap.async.AsyncContextAccessor;
 import com.navercorp.pinpoint.bootstrap.config.Filter;
 import com.navercorp.pinpoint.bootstrap.context.*;
 import com.navercorp.pinpoint.bootstrap.context.scope.TraceScope;
@@ -25,9 +25,9 @@ import com.navercorp.pinpoint.bootstrap.logging.PLoggerFactory;
 import com.navercorp.pinpoint.bootstrap.sampler.SamplingFlagUtils;
 import com.navercorp.pinpoint.bootstrap.util.NetworkUtils;
 import com.navercorp.pinpoint.bootstrap.util.NumberUtils;
-import com.navercorp.pinpoint.bootstrap.util.StringUtils;
 import com.navercorp.pinpoint.common.trace.AnnotationKey;
 import com.navercorp.pinpoint.common.trace.ServiceType;
+import com.navercorp.pinpoint.common.util.StringUtils;
 import com.navercorp.pinpoint.plugin.vertx.VertxConstants;
 import com.navercorp.pinpoint.plugin.vertx.VertxHttpServerConfig;
 import com.navercorp.pinpoint.plugin.vertx.VertxHttpServerMethodDescriptor;
@@ -110,12 +110,11 @@ public class ServerConnectionHandleRequestInterceptor implements AroundIntercept
             recorder.recordServiceType(VertxConstants.VERTX_HTTP_SERVER_INTERNAL);
 
             // make asynchronous trace-id
-            final AsyncTraceId asyncTraceId = trace.getAsyncTraceId(true);
-            recorder.recordNextAsyncId(asyncTraceId.getAsyncId());
-            ((AsyncTraceIdAccessor) request)._$PINPOINT$_setAsyncTraceId(asyncTraceId);
-            ((AsyncTraceIdAccessor) response)._$PINPOINT$_setAsyncTraceId(asyncTraceId);
+            final AsyncContext asyncContext = recorder.recordNextAsyncContext(true);
+            ((AsyncContextAccessor) request)._$PINPOINT$_setAsyncContext(asyncContext);
+            ((AsyncContextAccessor) response)._$PINPOINT$_setAsyncContext(asyncContext);
             if (isDebug) {
-                logger.debug("Set closeable-asyncTraceId metadata {}", asyncTraceId);
+                logger.debug("Set closeable-AsyncContext {}", asyncContext);
             }
         } catch (Throwable t) {
             if (logger.isWarnEnabled()) {
@@ -139,9 +138,9 @@ public class ServerConnectionHandleRequestInterceptor implements AroundIntercept
             return false;
         }
 
-        if (!(args[0] instanceof AsyncTraceIdAccessor)) {
+        if (!(args[0] instanceof AsyncContextAccessor)) {
             if (isDebug) {
-                logger.debug("Invalid args[0] object. Need metadata accessor({}).", AsyncTraceIdAccessor.class.getName());
+                logger.debug("Invalid args[0] object. Need metadata accessor({}).", AsyncContextAccessor.class.getName());
             }
             return false;
         }
@@ -154,9 +153,9 @@ public class ServerConnectionHandleRequestInterceptor implements AroundIntercept
             return false;
         }
 
-        if (!(args[1] instanceof AsyncTraceIdAccessor)) {
+        if (!(args[1] instanceof AsyncContextAccessor)) {
             if (isDebug) {
-                logger.debug("Invalid args[1] object. Need metadata accessor({}).", AsyncTraceIdAccessor.class.getName());
+                logger.debug("Invalid args[1] object. Need metadata accessor({}).", AsyncContextAccessor.class.getName());
             }
             return false;
         }
@@ -226,7 +225,7 @@ public class ServerConnectionHandleRequestInterceptor implements AroundIntercept
     }
 
     private Trace createTrace(final HttpServerRequestImpl request) {
-        final String requestURI = request.uri();
+        final String requestURI = request.path();
         if (requestURI != null && excludeUrlFilter.filter(requestURI)) {
             // skip request.
             if (isTrace) {
@@ -239,7 +238,7 @@ public class ServerConnectionHandleRequestInterceptor implements AroundIntercept
         if (!sampling) {
             final Trace trace = traceContext.disableSampling();
             if (isDebug) {
-                logger.debug("Remote call sampling flag found. skip trace requestUrl:{}, remoteAddr:{}", request.uri(), request.remoteAddress());
+                logger.debug("Remote call sampling flag found. skip trace requestUrl:{}, remoteAddr:{}", request.path(), request.remoteAddress());
             }
             if (!initScope(trace)) {
                 // invalid scope.
@@ -257,11 +256,11 @@ public class ServerConnectionHandleRequestInterceptor implements AroundIntercept
                 final SpanRecorder recorder = trace.getSpanRecorder();
                 recordRootSpan(recorder, request);
                 if (isDebug) {
-                    logger.debug("TraceID exist. continue trace. traceId:{}, requestUrl:{}, remoteAddr:{}", traceId, request.uri(), request.remoteAddress());
+                    logger.debug("TraceID exist. continue trace. traceId:{}, requestUrl:{}, remoteAddr:{}", traceId, request.path(), request.remoteAddress());
                 }
             } else {
                 if (isDebug) {
-                    logger.debug("TraceID exist. camSampled is false. skip trace. traceId:{}, requestUrl:{}, remoteAddr:{}", traceId, request.uri(), request.remoteAddress());
+                    logger.debug("TraceID exist. camSampled is false. skip trace. traceId:{}, requestUrl:{}, remoteAddr:{}", traceId, request.path(), request.remoteAddress());
                 }
             }
             if (!initScope(trace)) {
@@ -278,11 +277,11 @@ public class ServerConnectionHandleRequestInterceptor implements AroundIntercept
                 final SpanRecorder recorder = trace.getSpanRecorder();
                 recordRootSpan(recorder, request);
                 if (isDebug) {
-                    logger.debug("TraceID not exist. start new trace. requestUrl:{}, remoteAddr:{}", request.uri(), request.remoteAddress());
+                    logger.debug("TraceID not exist. start new trace. requestUrl:{}, remoteAddr:{}", request.path(), request.remoteAddress());
                 }
             } else {
                 if (isDebug) {
-                    logger.debug("TraceID not exist. camSampled is false. skip trace. requestUrl:{}, remoteAddr:{}", request.uri(), request.remoteAddress());
+                    logger.debug("TraceID not exist. camSampled is false. skip trace. requestUrl:{}, remoteAddr:{}", request.path(), request.remoteAddress());
                 }
             }
 
@@ -330,7 +329,7 @@ public class ServerConnectionHandleRequestInterceptor implements AroundIntercept
     private void recordRootSpan(final SpanRecorder recorder, final HttpServerRequestImpl request) {
         // root
         recorder.recordServiceType(VertxConstants.VERTX_HTTP_SERVER);
-        final String requestURL = request.uri();
+        final String requestURL = request.path();
         if (requestURL != null) {
             recorder.recordRpcName(requestURL);
         }
@@ -479,7 +478,7 @@ public class ServerConnectionHandleRequestInterceptor implements AroundIntercept
         @Override
         public String resolve(T httpServletRequest) {
             final String realIp = httpServletRequest.getHeader(this.realIpHeaderName);
-            if (realIp == null || realIp.isEmpty()) {
+            if (StringUtils.isEmpty(realIp)) {
                 if (httpServletRequest.remoteAddress() != null) {
                     return httpServletRequest.remoteAddress().toString();
                 }
